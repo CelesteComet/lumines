@@ -11,6 +11,7 @@ class Game {
     this.state = GAME;
     this.grid = new Grid;
     this.player = new Player;
+    this.input = null;
 
     this.grid.init();
 
@@ -21,36 +22,37 @@ class Game {
     this.canvas.height = 600;
 
     this.attachControlHandlers();
-    this.loop();
+    requestAnimationFrame(this.loop.bind(this));
   }
 
   loop() {
-    var _self = this;
-    window.requestAnimationFrame(() => {
-      let input = this.getPlayerInput();
-      console.log(input);
-      this.update(input);
-      this.render();      
-      _self.loop();
-    });
+    this.update();
+    this.render();
+    requestAnimationFrame(this.loop.bind(this));      
   }
 
   attachControlHandlers() {
-    let _self = this;
     window.onkeydown = (e) => {
-      _self.input = e;
-    }
-  }
+      console.log(e.key);
+      if (e.key === "ArrowRight") {
+        this.player.moveRight();
+      }
 
-  getPlayerInput() {
-    let currentInput = this.input;
-    this.input = null;
-    return currentInput;
+      if (e.key === "ArrowLeft") {
+        this.player.moveLeft()
+      }
+
+      if (e.code === "Space") {
+        this.grid.releasePlayerBlocks();
+      }
+    }
   }
 
   update() {
     // console.log('updating game frame');
-    this.grid.update(this.input);
+    const { input } = this;
+    console.log(input);
+    this.grid.update(this.player);
   }
 
   render() {

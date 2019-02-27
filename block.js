@@ -3,16 +3,22 @@ class Block {
     this.x = x;
     this.y = y;
     this.size = size;
+    this.color = Math.floor(Math.random() * 4);
+    this.state = 'player';
+
+    // Math stuff
+    this.velocity = .1;
   }
 
-  update() {
+  setFalling(gridData) {
+    this.state = "falling";
+  }
+
+  updatePosition(gridData) {
 
   }
 
-  render(ctx) {
-    const { x, y, size } = this;
-    ctx.fillRect(this.x * size, this.y * size, size, size);
-  }
+
 };
 
 export default Block;
