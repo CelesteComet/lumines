@@ -1,9 +1,11 @@
 import Space from './space';
 import Block from './block';
+import Line from './line';
 
 class Grid {
-  constructor() {
+  constructor(game) {
     this.data = []
+    this.game = game;
     this.options = {
       length: 16,
       height: 10,
@@ -12,9 +14,9 @@ class Grid {
       },
       gridBlockSize: 50
     };
-
+    this.line = new Line(this);
     this.playerBlocks = [];
-    this.gridBlocks = {};
+    this.blocks = {};
   }
 
   init() {
@@ -23,27 +25,19 @@ class Grid {
     for (let i = 0; i < length; i++) {
       let column = [];
       for (let j = 0; j < height; j++) {
-        column.push(new Space)
+        column.push(null);
       }
       this.data.push(column);
     }
-
-    console.log('creating initial block');
-    this.createBlock();
   }
 
   drawGrid(ctx) {
-    console.log("drawing grid");
     const { length, height, gridBlockSize } = this.options;
-    for (let i = 0; i < height; i++) {
+    for (let i = 2; i < height; i++) {
       ctx.beginPath();
       ctx.moveTo(0, (i * gridBlockSize));
       ctx.lineTo(gridBlockSize * length, (i * gridBlockSize));
       ctx.stroke();
-
-      // ctx.moveTo((i * gridBlockSize), 0);
-      // ctx.lineTo((i * gridBlockSize), gridBlockSize * length);
-      // ctx.stroke();      
     }
 
     for (let i = 0; i < length; i++) {
@@ -51,98 +45,58 @@ class Grid {
       ctx.moveTo((i * gridBlockSize), 0);
       ctx.lineTo((i * gridBlockSize), gridBlockSize * height);
       ctx.stroke();      
-    }    
+    }
 
-    this.playerBlocks.forEach(b => {
+    this.game.player.blocks.forEach(b => {
       ctx.fillRect(b.x * gridBlockSize, b.y * gridBlockSize, gridBlockSize, gridBlockSize);
     });
-
-    Object.keys(this.gridBlocks).forEach(key => {
-      let b = this.gridBlocks[key];
-      ctx.fillRect(b.x * gridBlockSize, b.y * gridBlockSize, gridBlockSize, gridBlockSize);
-    })
   }
 
-  createBlock() {
-    const { gridBlockSize } = this.options;
-    this.playerBlocks[0] = new Block(7,0, gridBlockSize);
-    this.playerBlocks[1] = new Block(7,1, gridBlockSize);
-    this.playerBlocks[2] = new Block(8,0, gridBlockSize);
-    this.playerBlocks[3] = new Block(8,1, gridBlockSize);
-  }
+  checkSquares() {
+    const gridData = this.data;
 
-  fillGridWithBlocks() {
+    Object.keys(this.blocks).forEach(key => {
+      let squares = [];
+      let block = this.blocks[key];
+      squares.push(gridData[block.gridPosition.x][block.gridPosition.y])
+      squares.push(gridData[block.gridPosition.x + 1][block.gridPosition.y])
+      squares.push(gridData[block.gridPosition.x][block.gridPosition.y - 1])
+      squares.push(gridData[block.gridPosition.x + 1][block.gridPosition.y - 1]) 
 
-    // iterate player blocks and put it in the grid data
-    for (let i = 0; i < this.playerBlocks.length; i++) {
-      let block = this.playerBlocks[i];
-      this.data[block.x][block.y] = block;
-    }
-
-    // iterate grid blocks and put it in the grid data
-    // for (let i = 0; i < this.gridBlocks.length; i++) {
-    //   let block = this.playerBlocks[i];
-    //   this.data[block.x][block.y] = block;
-    // }    
-  }
-
-  releasePlayerBlocks() {
-    // go through player blocks and add them to grid blocks
-    while (this.playerBlocks.length) {
-      let block = this.playerBlocks.pop();
-      block.setFalling(this.data);
-      this.gridBlocks[Math.random()] = block;
-    }
-  }
-
-  update(player) {
-    let playerPosition = player.position;
-
-    // iterate player blocks and update positions
-    this.playerBlocks.forEach((b,i) => {
-      if (i > 1) {
-        b.x = playerPosition + 1;
-        return;
+      let areAllBlocks = _.every(squares, (s) => {
+        return (s instanceof Block && s.state === 'stopped' && (s.val === squares[0].val || s.val === 3))
+      })
+  
+      if (areAllBlocks) {
+        squares.forEach(b => {
+          if (b.val !== 4) {
+            b.val = 3;
+          }
+        })
       }
-      b.x = playerPosition;
+    })        
+
+
+    
+  }  
+
+  update() {
+    this.line.update();
+    Object.keys(this.blocks).forEach(key => {
+      this.blocks[key].update();
     })    
 
-    // iterate player blocks and update positions
-
-    // iterate through each column 
-
-    this.data.forEach(column => {
-      for (let j = column.length; j > 0; j--) {
-        let space = column[j];
-        if (space instanceof Block) {
-          let block = space;
-          let bottomSpace = column[j+1];
-
-          if (bottomSpace.value === null && block.state === "falling") {
-            block.y = block.y + block.velocity;
-            debugger;
-          } else if (bottomSpace instanceof Block && bottomSpace.state === "falling") {
-            block.y = block.y + block.velocity;
-          }
-        }
-      }
-    })
-
-    // iterate columns backwards
-
-    // 
-    // Object.keys(this.gridBlocks).forEach(key => {
-    //   let b = this.gridBlocks[key];
-    //   if (b.state === "falling") {
-    //     // b.y = b.y + b.velocity;
-    //     b.updatePosition(this.data);
-    //   }
-    // })
-    this.fillGridWithBlocks();
+    this.checkSquares()
   }
 
   render(ctx) {
+
     this.drawGrid(ctx);
+    var self = this;
+    Object.keys(this.blocks).forEach(key => {
+      self.blocks[key].render(ctx);
+    })
+    this.line.render(ctx);
   }
 
 
